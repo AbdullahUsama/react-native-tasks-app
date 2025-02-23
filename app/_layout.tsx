@@ -31,12 +31,13 @@ export default function RootLayout() {
             },
             headerTintColor: "#fff",
             drawerActiveTintColor: theme.colors.primary,
+            headerLeft: () => null, // Removes the sidebar icon
           }}
         >
           <Drawer.Screen
             name="index"
             options={{
-              title: "Home",
+              title: "Task App",
               drawerLabel: "Home",
             }}
           />
