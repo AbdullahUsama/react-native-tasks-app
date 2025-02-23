@@ -1,8 +1,7 @@
+import { Task, TaskPriority } from "../types/list";
 import React, { memo } from "react";
 import { View, StyleSheet } from "react-native";
 import { Checkbox, Text, IconButton } from "react-native-paper";
-import { Task } from "../types/list";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface TaskItemProps {
   task: Task;
@@ -10,11 +9,29 @@ interface TaskItemProps {
   onDelete: () => void;
 }
 
-const priorityColors = {
-  low: "#8BC34A",
-  medium: "#FFC107",
-  high: "#F44336",
+const getPriorityColor = (priority: TaskPriority) => {
+  switch (priority) {
+    case "low":
+      return "#4CAF50"; // Green
+    case "medium":
+      return "#FF9800"; // Orange
+    case "high":
+      return "#F44336"; // Red
+    default:
+      return "#757575"; // Default gray
+  }
 };
+
+const PriorityBadge = ({ priority }: { priority: TaskPriority }) => (
+  <Text
+    style={[
+      styles.priorityBadge,
+      { backgroundColor: getPriorityColor(priority) },
+    ]}
+  >
+    {priority}
+  </Text>
+);
 
 const getTimeLeft = (deadline: Date) => {
   const now = new Date();
@@ -28,12 +45,29 @@ const getTimeLeft = (deadline: Date) => {
   return "Due soon";
 };
 
+const extractPriorityAndTitle = (
+  fullTitle: string
+): { title: string; priority: TaskPriority } => {
+  const matches = fullTitle.match(/^(.*?)\s*\[(low|medium|high)\]$/);
+  if (matches) {
+    return {
+      title: matches[1].trim(),
+      priority: matches[2] as TaskPriority,
+    };
+  }
+  return {
+    title: fullTitle,
+    priority: "medium", // default priority
+  };
+};
+
 export const TaskItem = memo(function TaskItem({
   task,
   onToggle,
   onDelete,
 }: TaskItemProps) {
-  console.log("Task Item p task item:", task.priority);
+  const { title, priority } = extractPriorityAndTitle(task.title);
+
   return (
     <View style={styles.container}>
       <View style={styles.leftContent}>
@@ -42,25 +76,16 @@ export const TaskItem = memo(function TaskItem({
           onPress={onToggle}
         />
         <View style={styles.textContent}>
-          <Text
-            style={[styles.title, task.completed && styles.completed]}
-            numberOfLines={1}
-          >
-            {task.title}
+          <View style={styles.titleContainer}>
             <Text
-              style={[
-                styles.priorityText,
-                { color: priorityColors[task.priority] || "#000" },
-              ]}
+              style={[styles.title, task.completed && styles.completed]}
+              numberOfLines={1}
             >
-              {" "}
-              (
-              {task.priority
-                ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1)
-                : "No Priority"}
-              )
+              {title}
             </Text>
-          </Text>
+            <Text style={styles.separator}> - </Text>
+            <PriorityBadge priority={priority} />
+          </View>
           {task.description ? (
             <Text
               style={[styles.description, task.completed && styles.completed]}
@@ -70,19 +95,14 @@ export const TaskItem = memo(function TaskItem({
             </Text>
           ) : null}
           <View style={styles.metadata}>
-            {task.priority && (
+            {task.deadline && (
               <Text
                 style={[
                   styles.metadataText,
-                  { color: priorityColors[task.priority] },
+                  new Date(task.deadline).getTime() - new Date().getTime() <
+                    0 && styles.overdueText,
                 ]}
               >
-                {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}{" "}
-                Priority
-              </Text>
-            )}
-            {task.deadline && (
-              <Text style={styles.metadataText}>
                 {getTimeLeft(new Date(task.deadline))}
               </Text>
             )}
@@ -102,6 +122,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 8,
     marginBottom: 8,
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   leftContent: {
     flex: 1,
@@ -112,10 +137,19 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
   },
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    marginBottom: 2,
+  },
   title: {
     fontSize: 16,
     fontWeight: "500",
-    marginBottom: 2,
+  },
+  separator: {
+    marginHorizontal: 4,
+    color: "#666",
   },
   completed: {
     textDecorationLine: "line-through",
@@ -136,8 +170,16 @@ const styles = StyleSheet.create({
     marginRight: 16,
     color: "#666",
   },
-  priorityText: {
+  overdueText: {
+    color: "#F44336",
+  },
+  priorityBadge: {
     fontSize: 12,
-    fontWeight: "bold",
+    color: "white",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    overflow: "hidden",
+    textTransform: "capitalize",
   },
 });

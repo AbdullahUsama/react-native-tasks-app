@@ -1,5 +1,5 @@
 import React, { useRef, useCallback, useState } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import {
   Dialog,
   Portal,
@@ -7,6 +7,7 @@ import {
   TextInput,
   SegmentedButtons,
   List,
+  useTheme,
 } from "react-native-paper";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { TaskPriority } from "../types/list";
@@ -14,46 +15,59 @@ import { TaskPriority } from "../types/list";
 interface TaskDialogProps {
   visible: boolean;
   onDismiss: () => void;
-  onSubmit: (
-    title: string,
-    description: string,
-    priority: TaskPriority,
-    deadline?: Date
-  ) => void;
+  onSubmit: (title: string, description: string, deadline?: Date) => void;
   loading?: boolean;
 }
 
+const getPriorityColor = (priority: TaskPriority) => {
+  switch (priority) {
+    case "low":
+      return "#4CAF50"; // Green
+    case "medium":
+      return "#FF9800"; // Orange
+    case "high":
+      return "#F44336"; // Red
+    default:
+      return "#757575"; // Default gray
+  }
+};
+
+const PriorityBadge = ({ priority }: { priority: TaskPriority }) => (
+  <Text
+    style={[
+      styles.priorityBadge,
+      { backgroundColor: getPriorityColor(priority) },
+    ]}
+  >
+    {priority}
+  </Text>
+);
+
 export const TaskDialog = React.memo(
   ({ visible, onDismiss, onSubmit, loading }: TaskDialogProps) => {
+    const theme = useTheme();
     const titleRef = useRef("");
     const descriptionRef = useRef("");
-    const [priority, setPriority] = useState<TaskPriority>("medium");
     const [deadline, setDeadline] = useState<Date | undefined>();
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [, forceUpdate] = useState(0);
+    const [priority, setPriority] = useState<TaskPriority>("medium");
 
     const handleSubmit = useCallback(() => {
       if (!titleRef.current.trim()) return;
 
-      console.log("Creating Task:", {
-        title: titleRef.current.trim(),
-        description: descriptionRef.current.trim(),
-        priority,
-        deadline,
-      });
-      onSubmit(
-        titleRef.current.trim(),
-        descriptionRef.current.trim(),
-        priority,
-        deadline
-      );
+      const baseTitle = titleRef.current.trim();
+      // Now we'll let the UI handle the priority display
+      const titleWithPriority = `${baseTitle} [${priority}]`;
+      onSubmit(titleWithPriority, descriptionRef.current.trim(), deadline);
+
       titleRef.current = "";
       descriptionRef.current = "";
       setPriority("medium");
       setDeadline(undefined);
       forceUpdate((x) => x + 1);
-    }, [onSubmit, priority, deadline]);
+    }, [onSubmit, deadline, priority]);
 
     const handleDateChange = (event: any, selectedDate?: Date) => {
       setShowDatePicker(false);
@@ -63,6 +77,7 @@ export const TaskDialog = React.memo(
         newDeadline.setMonth(selectedDate.getMonth());
         newDeadline.setDate(selectedDate.getDate());
         setDeadline(newDeadline);
+        setShowTimePicker(true); // Automatically show time picker after date selection
       }
     };
 
@@ -75,7 +90,7 @@ export const TaskDialog = React.memo(
         setDeadline(newDeadline);
       }
     };
-    console.log("priority", priority);
+
     return (
       <Portal>
         <Dialog visible={visible} onDismiss={onDismiss}>
@@ -103,16 +118,48 @@ export const TaskDialog = React.memo(
               multiline
               numberOfLines={3}
             />
+            <View style={styles.prioritySection}>
+              <Text style={styles.priorityLabel}>Priority:</Text>
+              <View style={styles.priorityPreview}>
+                <Text>Preview: </Text>
+                <Text style={styles.previewTitle}>
+                  {titleRef.current || "Task"}
+                </Text>
+                <Text> - </Text>
+                <PriorityBadge priority={priority} />
+              </View>
+            </View>
             <SegmentedButtons
               value={priority}
               onValueChange={(value) => setPriority(value as TaskPriority)}
               buttons={[
-                { value: "low", label: "Low" },
-                { value: "medium", label: "Medium" },
-                { value: "high", label: "High" },
+                {
+                  value: "low",
+                  label: "Low",
+                  style: {
+                    backgroundColor: priority === "low" ? "#E8F5E9" : undefined,
+                  },
+                },
+                {
+                  value: "medium",
+                  label: "Medium",
+                  style: {
+                    backgroundColor:
+                      priority === "medium" ? "#FFF3E0" : undefined,
+                  },
+                },
+                {
+                  value: "high",
+                  label: "High",
+                  style: {
+                    backgroundColor:
+                      priority === "high" ? "#FFEBEE" : undefined,
+                  },
+                },
               ]}
+              style={styles.segmentedButtons}
             />
-            <List.Item
+            {/* <List.Item
               title="Set Deadline"
               description={
                 deadline ? deadline.toLocaleString() : "No deadline set"
@@ -120,7 +167,7 @@ export const TaskDialog = React.memo(
               left={(props) => <List.Icon {...props} icon="clock" />}
               onPress={() => setShowDatePicker(true)}
               style={styles.deadline}
-            />
+            /> */}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={onDismiss}>Cancel</Button>
@@ -128,6 +175,7 @@ export const TaskDialog = React.memo(
               onPress={handleSubmit}
               loading={loading}
               disabled={loading || !titleRef.current.trim()}
+              mode="contained"
             >
               Create
             </Button>
@@ -137,10 +185,7 @@ export const TaskDialog = React.memo(
           <DateTimePicker
             value={deadline || new Date()}
             mode="date"
-            onChange={(event, selectedDate) => {
-              setShowDatePicker(false);
-              if (selectedDate) setDeadline(selectedDate);
-            }}
+            onChange={handleDateChange}
           />
         )}
         {showTimePicker && (
@@ -159,10 +204,39 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: 12,
   },
-  priority: {
-    marginBottom: 12,
-  },
   deadline: {
     paddingLeft: 0,
+    marginTop: 12,
+  },
+  prioritySection: {
+    marginVertical: 12,
+  },
+  priorityLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 8,
+  },
+  priorityPreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
+    padding: 8,
+    borderRadius: 4,
+    marginBottom: 12,
+  },
+  previewTitle: {
+    fontWeight: "500",
+  },
+  priorityBadge: {
+    fontSize: 12,
+    color: "white",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    overflow: "hidden",
+    textTransform: "capitalize",
+  },
+  segmentedButtons: {
+    marginBottom: 12,
   },
 });
