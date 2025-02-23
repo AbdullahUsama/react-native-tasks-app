@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   emptyText: { textAlign: "center", marginTop: 20, opacity: 0.5 },
   fab: { position: "absolute", margin: 16, right: 0, bottom: 0 },
-  calendarFab: { position: "absolute", margin: 16, left: 0, bottom: 0 },
+  calendarFab: { position: "absolute", margin: 16, right: 0, bottom: 80 }, // Adjust bottom value to place above the + button
   calendarContainer: {
     position: "absolute",
     top: "20%",
