@@ -85,7 +85,7 @@ export default function Home() {
       )}
       <FAB
         icon="plus"
-        label="New List"
+        label=""
         style={styles.fab}
         onPress={() => setCreateDialogVisible(true)}
         disabled={isLoading}

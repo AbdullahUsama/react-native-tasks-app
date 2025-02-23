@@ -3,22 +3,17 @@ import React, { memo } from "react";
 import { View, StyleSheet } from "react-native";
 import { Checkbox, Text, IconButton } from "react-native-paper";
 
-interface TaskItemProps {
-  task: Task;
-  onToggle: () => void;
-  onDelete: () => void;
-}
-
+// Helper functions
 const getPriorityColor = (priority: TaskPriority) => {
   switch (priority) {
     case "low":
-      return "#4CAF50"; // Green
+      return "#4CAF50";
     case "medium":
-      return "#FF9800"; // Orange
+      return "#FF9800";
     case "high":
-      return "#F44336"; // Red
+      return "#F44336";
     default:
-      return "#757575"; // Default gray
+      return "#757575";
   }
 };
 
@@ -57,9 +52,15 @@ const extractPriorityAndTitle = (
   }
   return {
     title: fullTitle,
-    priority: "medium", // default priority
+    priority: "medium",
   };
 };
+
+interface TaskItemProps {
+  task: Task;
+  onToggle: () => void;
+  onDelete: () => void;
+}
 
 export const TaskItem = memo(function TaskItem({
   task,
@@ -71,20 +72,27 @@ export const TaskItem = memo(function TaskItem({
   return (
     <View style={styles.container}>
       <View style={styles.leftContent}>
-        <Checkbox
-          status={task.completed ? "checked" : "unchecked"}
-          onPress={onToggle}
-        />
+        <View style={{ marginRight: 4 }}>
+          <Checkbox
+            status={task.completed ? "checked" : "unchecked"}
+            onPress={onToggle}
+          />
+        </View>
         <View style={styles.textContent}>
           <View style={styles.titleContainer}>
-            <Text
-              style={[styles.title, task.completed && styles.completed]}
-              numberOfLines={1}
-            >
-              {title}
-            </Text>
-            <Text style={styles.separator}> - </Text>
-            <PriorityBadge priority={priority} />
+            <View style={styles.titlePriorityContainer}>
+              <Text
+                style={[
+                  styles.title,
+                  task.completed && styles.completed,
+                  { color: task.completed ? "#888" : "#1a1a1a" },
+                ]}
+                numberOfLines={1}
+              >
+                {title}
+              </Text>
+              <PriorityBadge priority={priority} />
+            </View>
           </View>
           {task.description ? (
             <Text
@@ -96,20 +104,27 @@ export const TaskItem = memo(function TaskItem({
           ) : null}
           <View style={styles.metadata}>
             {task.deadline && (
-              <Text
-                style={[
-                  styles.metadataText,
-                  new Date(task.deadline).getTime() - new Date().getTime() <
-                    0 && styles.overdueText,
-                ]}
-              >
-                {getTimeLeft(new Date(task.deadline))}
-              </Text>
+              <View style={styles.deadlineContainer}>
+                <Text
+                  style={[
+                    styles.metadataText,
+                    new Date(task.deadline).getTime() - new Date().getTime() <
+                      0 && styles.overdueText,
+                  ]}
+                >
+                  {getTimeLeft(new Date(task.deadline))}
+                </Text>
+              </View>
             )}
           </View>
         </View>
       </View>
-      <IconButton icon="delete-outline" onPress={onDelete} />
+      <IconButton
+        icon="delete-outline"
+        onPress={onDelete}
+        style={styles.deleteButton}
+        iconColor="#FF5252"
+      />
     </View>
   );
 });
@@ -118,38 +133,44 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
+    padding: 16,
     backgroundColor: "#fff",
-    borderRadius: 8,
-    marginBottom: 8,
-    elevation: 1,
+    borderRadius: 12,
+    marginBottom: 12,
+    elevation: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
+    borderColor: "#f0f0f0",
+    borderWidth: 1,
   },
   leftContent: {
     flex: 1,
     flexDirection: "row",
     alignItems: "flex-start",
   },
+  checkbox: {
+    marginRight: 4,
+  },
   textContent: {
     flex: 1,
     marginLeft: 8,
   },
   titleContainer: {
+    marginBottom: 4,
+  },
+  titlePriorityContainer: {
     flexDirection: "row",
     alignItems: "center",
-    flexWrap: "wrap",
+    justifyContent: "space-between",
     marginBottom: 2,
   },
   title: {
     fontSize: 16,
-    fontWeight: "500",
-  },
-  separator: {
-    marginHorizontal: 4,
-    color: "#666",
+    fontWeight: "600",
+    flex: 1,
+    marginRight: 8,
   },
   completed: {
     textDecorationLine: "line-through",
@@ -159,27 +180,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
     marginBottom: 4,
+    lineHeight: 20,
   },
   metadata: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
+    marginTop: 6,
+  },
+  deadlineContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   metadataText: {
     fontSize: 12,
-    marginRight: 16,
     color: "#666",
+    fontWeight: "500",
   },
   overdueText: {
-    color: "#F44336",
+    color: "#FF5252",
+    fontWeight: "600",
   },
   priorityBadge: {
     fontSize: 12,
     color: "white",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 16,
     overflow: "hidden",
     textTransform: "capitalize",
+    fontWeight: "600",
+  },
+  deleteButton: {
+    marginLeft: 8,
   },
 });

@@ -121,7 +121,7 @@ export const TaskDialog = React.memo(
             <View style={styles.prioritySection}>
               <Text style={styles.priorityLabel}>Priority:</Text>
               <View style={styles.priorityPreview}>
-                <Text>Preview: </Text>
+                <Text></Text>
                 <Text style={styles.previewTitle}>
                   {titleRef.current || "Task"}
                 </Text>

@@ -25,13 +25,24 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider theme={theme}>
         <Drawer
-          screenOptions={{
-            headerStyle: {
-              backgroundColor: theme.colors.primary,
-            },
-            headerTintColor: "#fff",
-            drawerActiveTintColor: theme.colors.primary,
-            headerLeft: () => null, // Removes the sidebar icon
+          screenOptions={({ route }) => {
+            const isCustomList = route.name.startsWith("custom/");
+            const listId = isCustomList ? route.name.split("/")[1] : null;
+            const list = customLists.find((list) => list.id === listId);
+
+            return {
+              headerStyle: {
+                backgroundColor: theme.colors.primary,
+              },
+              headerTintColor: "#fff",
+              headerTitle: list
+                ? list.name
+                : route.name === "index"
+                ? "Task App"
+                : "Tasks", // Adjust default title
+              drawerActiveTintColor: theme.colors.primary,
+              headerLeft: () => null, // Removes the sidebar icon
+            };
           }}
         >
           <Drawer.Screen
