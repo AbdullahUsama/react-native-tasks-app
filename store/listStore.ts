@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { TaskList, Task } from "../types/list";
 import { storage } from "../services/storage";
+import { v4 as uuidv4 } from "uuid";
 
 interface ListStore {
   lists: TaskList[];
@@ -37,13 +38,15 @@ export const useListStore = create<ListStore>((set, get) => ({
   },
 
   addList: async (list) => {
+    console.log("Adding list:", list);
     try {
       set({ isLoading: true, error: null });
-      const newList = { ...list, id: Math.random().toString() };
+      const newList = { id: `${Date.now()}-${Math.random()}`, ...list };
       const newLists = [...get().lists, newList];
       await storage.saveLists(newLists);
       set({ lists: newLists });
     } catch (error) {
+      console.error("Error adding list:", error);
       set({ error: "Failed to add list" });
     } finally {
       set({ isLoading: false });
@@ -64,6 +67,7 @@ export const useListStore = create<ListStore>((set, get) => ({
   },
 
   addTask: async (listId, task) => {
+    console.log("task add task list store:", task);
     try {
       set({ isLoading: true, error: null });
       const newLists = get().lists.map((list) =>

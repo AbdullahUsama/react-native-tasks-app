@@ -13,12 +13,16 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { LoadingOverlay } from "../components/LoadingOverlay";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { useTaskList } from "../hooks/useTaskList";
 
 export default function CustomLists() {
-  const { lists, isLoading, error, addList, loadLists } = useListStore();
+  const { lists, isLoading, error, addList, loadLists, removeList } =
+    useListStore();
   const [dialogVisible, setDialogVisible] = useState(false);
   const [newListName, setNewListName] = useState("");
+  const [listToDelete, setListToDelete] = useState<string | null>(null);
   const router = useRouter();
+  const { handleAddTask } = useTaskList("custom");
 
   const customLists = lists.filter((list) => list.type === "custom");
 
@@ -34,6 +38,23 @@ export default function CustomLists() {
     }
   };
 
+  const confirmDeleteList = (listId: string) => {
+    setListToDelete(listId);
+    setDialogVisible(true);
+  };
+
+  const deleteList = async () => {
+    if (listToDelete) {
+      await removeList(listToDelete);
+      setListToDelete(null);
+      setDialogVisible(false);
+    }
+  };
+
+  const addNewTask = () => {
+    handleAddTask("New Task Title", "Task Description", "medium");
+  };
+
   return (
     <View style={styles.container}>
       {error && <ErrorMessage message={error} onRetry={loadLists} />}
@@ -46,6 +67,7 @@ export default function CustomLists() {
             description={`${item.tasks.length} tasks`}
             left={(props) => <List.Icon {...props} icon="folder" />}
             onPress={() => router.push(`/custom/${item.id}`)}
+            onLongPress={() => confirmDeleteList(item.id)}
           />
         )}
         ListEmptyComponent={
@@ -64,28 +86,18 @@ export default function CustomLists() {
           visible={dialogVisible}
           onDismiss={() => setDialogVisible(false)}
         >
-          <Dialog.Title>Create New Listt</Dialog.Title>
+          <Dialog.Title>Delete List</Dialog.Title>
           <Dialog.Content>
-            <TextInput
-              label="List Name"
-              value={newListName}
-              onChangeText={setNewListName}
-              mode="outlined"
-            />
+            <Text>Are you sure you want to delete this list?</Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setDialogVisible(false)}>Cancel</Button>
-            <Button
-              onPress={handleCreateList}
-              loading={isLoading}
-              disabled={isLoading || !newListName.trim()}
-            >
-              Create
-            </Button>
+            <Button onPress={deleteList}>Delete</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
       {isLoading && <LoadingOverlay />}
+      <Button onPress={addNewTask}>Add Task</Button>
     </View>
   );
 }

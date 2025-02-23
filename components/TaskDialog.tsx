@@ -1,11 +1,25 @@
 import React, { useRef, useCallback, useState } from "react";
-import { Dialog, Portal, Button } from "react-native-paper";
-import { TextInput, StyleSheet, Keyboard } from "react-native";
+import { StyleSheet } from "react-native";
+import {
+  Dialog,
+  Portal,
+  Button,
+  TextInput,
+  SegmentedButtons,
+  List,
+} from "react-native-paper";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { TaskPriority } from "../types/list";
 
 interface TaskDialogProps {
   visible: boolean;
   onDismiss: () => void;
-  onSubmit: (title: string, description: string) => void;
+  onSubmit: (
+    title: string,
+    description: string,
+    priority: TaskPriority,
+    deadline?: Date
+  ) => void;
   loading?: boolean;
 }
 
@@ -13,65 +27,103 @@ export const TaskDialog = React.memo(
   ({ visible, onDismiss, onSubmit, loading }: TaskDialogProps) => {
     const titleRef = useRef("");
     const descriptionRef = useRef("");
-    const [, forceUpdate] = useState(0); // Force re-render when needed
-    const descriptionInputRef = useRef<TextInput>(null);
-
-    const handleChangeTitle = useCallback((text: string) => {
-      titleRef.current = text;
-      forceUpdate((x) => x + 1); // Trigger re-render
-    }, []);
-
-    const handleChangeDescription = useCallback((text: string) => {
-      descriptionRef.current = text;
-      forceUpdate((x) => x + 1);
-    }, []);
+    const [priority, setPriority] = useState<TaskPriority>("medium");
+    const [deadline, setDeadline] = useState<Date | undefined>();
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
+    const [, forceUpdate] = useState(0);
 
     const handleSubmit = useCallback(() => {
       if (!titleRef.current.trim()) return;
 
-      Keyboard.dismiss();
-      onSubmit(titleRef.current.trim(), descriptionRef.current.trim());
+      console.log("Creating Task:", {
+        title: titleRef.current.trim(),
+        description: descriptionRef.current.trim(),
+        priority,
+        deadline,
+      });
+      onSubmit(
+        titleRef.current.trim(),
+        descriptionRef.current.trim(),
+        priority,
+        deadline
+      );
       titleRef.current = "";
       descriptionRef.current = "";
-      forceUpdate((x) => x + 1); // Reset fields
-      onDismiss();
-    }, [onSubmit, onDismiss]);
+      setPriority("medium");
+      setDeadline(undefined);
+      forceUpdate((x) => x + 1);
+    }, [onSubmit, priority, deadline]);
 
-    const handleDismiss = useCallback(() => {
-      Keyboard.dismiss();
-      titleRef.current = "";
-      descriptionRef.current = "";
-      forceUpdate((x) => x + 1); // Reset fields
-      onDismiss();
-    }, [onDismiss]);
+    const handleDateChange = (event: any, selectedDate?: Date) => {
+      setShowDatePicker(false);
+      if (selectedDate) {
+        const newDeadline = deadline || new Date();
+        newDeadline.setFullYear(selectedDate.getFullYear());
+        newDeadline.setMonth(selectedDate.getMonth());
+        newDeadline.setDate(selectedDate.getDate());
+        setDeadline(newDeadline);
+      }
+    };
 
+    const handleTimeChange = (event: any, selectedTime?: Date) => {
+      setShowTimePicker(false);
+      if (selectedTime) {
+        const newDeadline = deadline || new Date();
+        newDeadline.setHours(selectedTime.getHours());
+        newDeadline.setMinutes(selectedTime.getMinutes());
+        setDeadline(newDeadline);
+      }
+    };
+    console.log("priority", priority);
     return (
       <Portal>
-        <Dialog visible={visible} onDismiss={handleDismiss}>
+        <Dialog visible={visible} onDismiss={onDismiss}>
           <Dialog.Title>New Task</Dialog.Title>
           <Dialog.Content>
             <TextInput
-              style={[styles.input, styles.titleInput]}
-              placeholder="Task Title"
+              label="Task Title"
               defaultValue={titleRef.current}
-              onChangeText={handleChangeTitle}
-              autoFocus
-              returnKeyType="next"
-              onSubmitEditing={() => descriptionInputRef.current?.focus()}
-              maxLength={100}
+              onChangeText={(text) => {
+                titleRef.current = text;
+                forceUpdate((x) => x + 1);
+              }}
+              style={styles.input}
+              mode="outlined"
             />
             <TextInput
-              ref={descriptionInputRef}
-              style={[styles.input, styles.descriptionInput]}
-              placeholder="Description (optional)"
+              label="Description (optional)"
               defaultValue={descriptionRef.current}
-              onChangeText={handleChangeDescription}
+              onChangeText={(text) => {
+                descriptionRef.current = text;
+                forceUpdate((x) => x + 1);
+              }}
+              style={styles.input}
+              mode="outlined"
               multiline
-              maxLength={500}
+              numberOfLines={3}
+            />
+            <SegmentedButtons
+              value={priority}
+              onValueChange={(value) => setPriority(value as TaskPriority)}
+              buttons={[
+                { value: "low", label: "Low" },
+                { value: "medium", label: "Medium" },
+                { value: "high", label: "High" },
+              ]}
+            />
+            <List.Item
+              title="Set Deadline"
+              description={
+                deadline ? deadline.toLocaleString() : "No deadline set"
+              }
+              left={(props) => <List.Icon {...props} icon="clock" />}
+              onPress={() => setShowDatePicker(true)}
+              style={styles.deadline}
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={handleDismiss}>Cancel</Button>
+            <Button onPress={onDismiss}>Cancel</Button>
             <Button
               onPress={handleSubmit}
               loading={loading}
@@ -81,6 +133,23 @@ export const TaskDialog = React.memo(
             </Button>
           </Dialog.Actions>
         </Dialog>
+        {showDatePicker && (
+          <DateTimePicker
+            value={deadline || new Date()}
+            mode="date"
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(false);
+              if (selectedDate) setDeadline(selectedDate);
+            }}
+          />
+        )}
+        {showTimePicker && (
+          <DateTimePicker
+            value={deadline || new Date()}
+            mode="time"
+            onChange={handleTimeChange}
+          />
+        )}
       </Portal>
     );
   }
@@ -88,18 +157,12 @@ export const TaskDialog = React.memo(
 
 const styles = StyleSheet.create({
   input: {
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 4,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: "#fff",
-  },
-  titleInput: {
     marginBottom: 12,
-    height: 45,
   },
-  descriptionInput: {
-    height: 100,
+  priority: {
+    marginBottom: 12,
+  },
+  deadline: {
+    paddingLeft: 0,
   },
 });

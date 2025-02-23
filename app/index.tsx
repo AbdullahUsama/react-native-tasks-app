@@ -13,67 +13,27 @@ import { useListStore } from "../store/listStore";
 import { useRouter } from "expo-router";
 import { LoadingOverlay } from "../components/LoadingOverlay";
 import { ErrorMessage } from "../components/ErrorMessage";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { TaskList } from "../types/list";
 
 export default function Home() {
-  const { lists, isLoading, error, addList, loadLists } = useListStore();
-  const [dialogVisible, setDialogVisible] = useState(false);
-  const newListNameRef = useRef<string>(""); // Use ref for input field
-  const [, forceUpdate] = useState(0); // Force re-render when needed
+  const { lists, isLoading, error, addList, loadLists, removeList } =
+    useListStore();
+  const [createDialogVisible, setCreateDialogVisible] = useState(false);
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const newListNameRef = useRef("");
+  const [listToDelete, setListToDelete] = useState<string | null>(null);
+  const [, forceUpdate] = useState(0);
   const router = useRouter();
 
   const handleCreateList = useCallback(async () => {
     const trimmedName = newListNameRef.current.trim();
     if (trimmedName) {
-      await addList({
-        name: trimmedName,
-        type: "custom",
-        tasks: [],
-      });
+      await addList({ name: trimmedName, type: "custom", tasks: [] });
       newListNameRef.current = "";
-      forceUpdate((x) => x + 1);
-      setDialogVisible(false);
+      setCreateDialogVisible(false);
       Keyboard.dismiss();
+      forceUpdate((x) => x + 1);
     }
   }, [addList]);
-
-  const getListIcon = (type: string) => {
-    switch (type) {
-      case "daily":
-        return "calendar-today";
-      case "weekly":
-        return "calendar-week";
-      case "monthly":
-        return "calendar-month";
-      default:
-        return "folder";
-    }
-  };
-
-  const RenderItem = React.memo(({ item }: { item: TaskList }) => (
-    <List.Item
-      title={
-        item.type === "custom"
-          ? item.name
-          : `${item.type.charAt(0).toUpperCase() + item.type.slice(1)} Tasks`
-      }
-      description={`${item.tasks.length} tasks`}
-      left={(props) => (
-        <MaterialCommunityIcons
-          name={getListIcon(item.type)}
-          size={24}
-          color={props.color}
-          style={{ marginLeft: 8, alignSelf: "center" }}
-        />
-      )}
-      onPress={() =>
-        router.push(
-          item.type === "custom" ? `/custom/${item.id}` : `/${item.type}`
-        )
-      }
-    />
-  ));
 
   return (
     <View style={styles.container}>
@@ -81,23 +41,30 @@ export default function Home() {
       <FlatList
         data={lists}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <RenderItem item={item} />}
+        renderItem={({ item }) => (
+          <List.Item
+            title={item.name}
+            description={`${item.tasks.length} tasks`}
+            onPress={() => router.push(`/custom/${item.id}`)}
+            onLongPress={() => {
+              setListToDelete(item.id);
+              setDeleteDialogVisible(true);
+            }}
+          />
+        )}
         ListEmptyComponent={<Text style={styles.emptyText}>No lists yet</Text>}
-        initialNumToRender={5}
-        maxToRenderPerBatch={5}
-        windowSize={5}
       />
       <FAB
         icon="plus"
         label="New List"
         style={styles.fab}
-        onPress={() => setDialogVisible(true)}
+        onPress={() => setCreateDialogVisible(true)}
         disabled={isLoading}
       />
       <Portal>
         <Dialog
-          visible={dialogVisible}
-          onDismiss={() => setDialogVisible(false)}
+          visible={createDialogVisible}
+          onDismiss={() => setCreateDialogVisible(false)}
         >
           <Dialog.Title>Create New List</Dialog.Title>
           <Dialog.Content>
@@ -112,13 +79,42 @@ export default function Home() {
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setDialogVisible(false)}>Cancel</Button>
+            <Button onPress={() => setCreateDialogVisible(false)}>
+              Cancel
+            </Button>
             <Button
               onPress={handleCreateList}
               loading={isLoading}
               disabled={isLoading || !newListNameRef.current.trim()}
             >
               Create
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+      <Portal>
+        <Dialog
+          visible={deleteDialogVisible}
+          onDismiss={() => setDeleteDialogVisible(false)}
+        >
+          <Dialog.Title>Delete List</Dialog.Title>
+          <Dialog.Content>
+            <Text>Are you sure you want to delete this list?</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeleteDialogVisible(false)}>
+              Cancel
+            </Button>
+            <Button
+              onPress={async () => {
+                if (listToDelete) {
+                  await removeList(listToDelete);
+                  setListToDelete(null);
+                  setDeleteDialogVisible(false);
+                }
+              }}
+            >
+              Delete
             </Button>
           </Dialog.Actions>
         </Dialog>

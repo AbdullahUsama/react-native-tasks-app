@@ -34,7 +34,7 @@ export function AddCustomListFAB() {
           visible={dialogVisible}
           onDismiss={() => setDialogVisible(false)}
         >
-          <Dialog.Title>Create New List</Dialog.Title>
+          <Dialog.Title>Create New List1</Dialog.Title>
           <Dialog.Content>
             <TextInput
               label="List Name"
